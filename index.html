@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตารางคะแนนทหารพราน</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background: #0f172a; color: #f8fafc; padding: 12px; }
+        .container { max-width: 500px; margin: 0 auto; }
+        
+        /* Header & Nav */
+        h1 { text-align: center; color: #3b82f6; font-size: 1.4rem; margin-bottom: 12px; font-weight: 800; }
+        .nav { display: flex; gap: 4px; background: #020617; padding: 4px; border-radius: 10px; border: 1px solid #334155; margin-bottom: 15px; }
+        .nav button { flex: 1; padding: 10px; border: none; background: transparent; color: #94a3b8; font-weight: bold; border-radius: 8px; font-size: 0.85rem; cursor: pointer; transition: 0.2s; }
+        .nav button.active { background: #3b82f6; color: #fff; box-shadow: 0 2px 8px rgba(59,130,246,0.3); }
+
+        /* Pages */
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* Cards & Buttons */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 14px 10px; text-align: center; }
+        .btn { width: 100%; padding: 9px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.85rem; margin-top: 4px; }
+        .btn-green { background: #10b981; color: #fff; }
+        .btn-blue { background: #3b82f6; color: #fff; }
+        .btn-red { background: #ef4444; color: #fff; }
+
+        .input-box { width: 100%; padding: 8px 10px; background: #090d16; border: 1px solid #334155; border-radius: 6px; color: #fff; font-size: 0.85rem; margin-bottom: 6px; }
+
+        /* Table Board Styling */
+        .table-box { background: #1e293b; border: 1px solid #334155; border-radius: 12px; overflow: hidden; margin-bottom: 15px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
+        th { background: #020617; color: #3b82f6; padding: 12px 10px; font-weight: bold; border-bottom: 1px solid #334155; }
+        td { padding: 12px 10px; border-bottom: 1px solid #334155; color: #f8fafc; }
+        tr:last-child td { border-bottom: none; }
+        .score-col { text-align: right; font-weight: bold; color: #10b981; }
+
+        /* Status message */
+        .msg-status { text-align: center; color: #10b981; font-size: 0.85rem; margin-top: 8px; min-height: 20px; font-weight: bold; }
+        
+        /* Lock Card */
+        .lock-box { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎖️ ตารางคะแนนทหารพราน</h1>
+
+    <div class="nav">
+        <button id="tab1" class="active" onclick="goPage('p-vote', 'tab1')">รายชื่อผู้สมัคร</button>
+        <button id="tab2" onclick="goPage('p-board', 'tab2')">ตารางคะแนน</button>
+        <button id="tab3" onclick="clickAdminTab()">ผู้ดูแลระบบ</button>
+    </div>
+
+    <div id="status-msg" class="msg-status"></div>
+
+    <div id="p-vote" class="page active">
+        <div class="grid" id="grid-vote"></div>
+    </div>
+
+    <div id="p-board" class="page">
+        <div class="table-box">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ชื่อผู้สมัคร</th>
+                        <th style="text-align:right;">คะแนน</th>
+                        <th style="text-align:right;">สัดส่วน</th>
+                    </tr>
+                </thead>
+                <tbody id="list-board-table"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="p-admin-lock" class="page">
+        <div class="lock-box">
+            <h3 style="margin-bottom:10px; color:#f59e0b;">🔒 เข้าสู่ระบบผู้ดูแล</h3>
+            <p style="font-size:0.85rem; color:#94a3b8; margin-bottom:12px;">กรุณากรอกรหัสผ่านเพื่อปรับแก้ไขคะแนนและรายชื่อ</p>
+            <input type="password" id="pass-input" class="input-box" placeholder="กรอกรหัสผ่านผู้ดูแล">
+            <button class="btn btn-blue" onclick="verifyAdmin()">ยืนยันตัวตน</button>
+        </div>
+    </div>
+
+    <div id="p-admin" class="page">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; background:#1e293b; padding:8px 12px; border-radius:8px; border:1px solid #334155;">
+            <span style="font-size:0.85rem; color:#10b981; font-weight:bold;">🟢 สิทธิ์ผู้ดูแลระบบ</span>
+            <button class="btn btn-red" style="width:auto; padding:4px 10px; margin:0;" onclick="logoutAdmin()">ออกจากระบบ</button>
+        </div>
+
+        <div class="card" style="text-align:left; margin-bottom:12px;">
+            <b style="color:#3b82f6;">➕ เพิ่มผู้สมัครใหม่</b>
+            <input type="text" id="add-name" class="input-box" placeholder="กรอกชื่อผู้สมัคร..." style="margin-top:6px;">
+            <button class="btn btn-blue" onclick="addCandidate()">บันทึกผู้สมัครใหม่</button>
+        </div>
+
+        <div id="list-admin"></div>
+        <button class="btn btn-red" style="margin-top:10px;" onclick="resetVotes()">ล้างคะแนนทั้งหมดเป็น 0</button>
+    </div>
+</div>
+
+<script>
+    var ADMIN_PASS = "050717";
+    var isAdminVerified = false;
+
+    var appData = [
+        { id: 1, name: "ผู้สมัครหมายเลข 1", votes: 0 },
+        { id: 2, name: "ผู้สมัครหมายเลข 2", votes: 0 }
+    ];
+
+    function showStatus(txt, isError) {
+        var el = document.getElementById('status-msg');
+        el.style.color = isError ? '#ef4444' : '#10b981';
+        el.innerText = txt;
+        setTimeout(function() { el.innerText = ''; }, 3000);
+    }
+
+    function goPage(pageId, tabId) {
+        document.getElementById('p-vote').className = 'page';
+        document.getElementById('p-board').className = 'page';
+        document.getElementById('p-admin-lock').className = 'page';
+        document.getElementById('p-admin').className = 'page';
+
+        document.getElementById('tab1').className = '';
+        document.getElementById('tab2').className = '';
+        document.getElementById('tab3').className = '';
+
+        document.getElementById(pageId).className = 'page active';
+        document.getElementById(tabId).className = 'active';
+    }
+
+    function clickAdminTab() {
+        if (isAdminVerified) {
+            goPage('p-admin', 'tab3');
+        } else {
+            goPage('p-admin-lock', 'tab3');
+        }
+    }
+
+    function verifyAdmin() {
+        var p = document.getElementById('pass-input').value;
+        if (p === ADMIN_PASS) {
+            isAdminVerified = true;
+            document.getElementById('pass-input').value = '';
+            showStatus('✅ เข้าสู่ระบบผู้ดูแลสำเร็จ', false);
+            goPage('p-admin', 'tab3');
+        } else {
+            showStatus('❌ รหัสผ่านไม่ถูกต้อง!', true);
+        }
+    }
+
+    function logoutAdmin() {
+        isAdminVerified = false;
+        showStatus('🔒 ออกจากระบบผู้ดูแลเรียบร้อยแล้ว', false);
+        goPage('p-vote', 'tab1');
+    }
+
+    function render() {
+        var total = 0;
+        for (var i = 0; i < appData.length; i++) total += appData[i].votes;
+
+        // Render หน้า 1: รายชื่อผู้สมัคร
+        var gVote = document.getElementById('grid-vote');
+        var htmlVote = '';
+        for (var a = 0; a < appData.length; a++) {
+            htmlVote += '<div class="card">' +
+                '<div style="font-weight:bold; font-size:1.05rem; color:#f8fafc;">' + appData[a].name + '</div>' +
+            '</div>';
+        }
+        gVote.innerHTML = htmlVote;
+
+        // Render หน้า 2: ตารางคะแนน
+        var tBoard = document.getElementById('list-board-table');
+        var htmlTable = '';
+        for (var b = 0; b < appData.length; b++) {
+            var pct = total > 0 ? Math.round((appData[b].votes / total) * 100) : 0;
+            htmlTable += '<tr>' +
+                '<td><strong>' + appData[b].name + '</strong></td>' +
+                '<td class="score-col">' + appData[b].votes + ' คะแนน</td>' +
+                '<td style="text-align:right; color:#94a3b8;">' + pct + '%</td>' +
+            '</tr>';
+        }
+        tBoard.innerHTML = htmlTable;
+
+        // Render หน้า 3: แผงควบคุมผู้ดูแลระบบ
+        var lAdmin = document.getElementById('list-admin');
+        var htmlAdmin = '';
+        for (var c = 0; c < appData.length; c++) {
+            htmlAdmin += '<div class="card" style="text-align:left; margin-bottom:8px;">' +
+                '<div style="font-size:0.8rem; color:#94a3b8; font-weight:bold; margin-bottom:4px;">รายการที่ ' + (c + 1) + '</div>' +
+                '<input type="text" class="input-box" value="' + appData[c].name + '" id="ed-name-' + appData[c].id + '">' +
+                '<div style="display:flex; gap:6px; align-items:center; margin-bottom:8px;">' +
+                    '<span style="font-size:0.8rem; white-space:nowrap;">คะแนนปัจจุบัน:</span>' +
+                    '<input type="number" class="input-box" style="margin:0;" value="' + appData[c].votes + '" id="ed-score-' + appData[c].id + '">' +
+                '</div>' +
+                '<div style="display:flex; gap:6px;">' +
+                    '<button class="btn btn-green" style="margin:0;" onclick="adminAddVote(' + appData[c].id + ')">🗳️ กดเพิ่ม 1 คะแนน</button>' +
+                    '<button class="btn btn-blue" style="margin:0; width:80px;" onclick="saveAdmin(' + appData[c].id + ')">บันทึก</button>' +
+                    '<button class="btn btn-red" style="margin:0; width:60px;" onclick="delCandidate(' + appData[c].id + ')">ลบ</button>' +
+                '</div>' +
+            '</div>';
+        }
+        lAdmin.innerHTML = htmlAdmin;
+    }
+
+    function adminAddVote(id) {
+        if (!isAdminVerified) return showStatus('🔒 กรุณายืนยันตัวตนผู้ดูแลก่อน', true);
+        for (var i = 0; i < appData.length; i++) {
+            if (appData[i].id === id) {
+                appData[i].votes += 1;
+                showStatus('✅ เพิ่มคะแนนให้ "' + appData[i].name + '" เป็น ' + appData[i].votes + ' คะแนนแล้ว', false);
+                break;
+            }
+        }
+        render();
+    }
+
+    function saveAdmin(id) {
+        if (!isAdminVerified) return showStatus('🔒 กรุณายืนยันตัวตนผู้ดูแลก่อน', true);
+        
+        var n = document.getElementById('ed-name-' + id).value;
+        var s = parseInt(document.getElementById('ed-score-' + id).value) || 0;
+        for (var i = 0; i < appData.length; i++) {
+            if (appData[i].id === id) {
+                appData[i].name = n;
+                appData[i].votes = s;
+                break;
+            }
+        }
+        render();
+        showStatus('💾 บันทึกข้อมูลเรียบร้อยแล้ว', false);
+    }
+
+    function addCandidate() {
+        if (!isAdminVerified) return showStatus('🔒 กรุณายืนยันตัวตนผู้ดูแลก่อน', true);
+
+        var inp = document.getElementById('add-name');
+        var txt = inp.value.trim();
+        if (!txt) return;
+        var maxId = 0;
+        for (var i = 0; i < appData.length; i++) {
+            if (appData[i].id > maxId) maxId = appData[i].id;
+        }
+        appData.push({ id: maxId + 2, name: txt, votes: 0 });
+        inp.value = '';
+        render();
+        showStatus('➕ เพิ่มผู้สมัครใหม่เรียบร้อยแล้ว', false);
+    }
+
+    function delCandidate(id) {
+        if (!isAdminVerified) return showStatus('🔒 กรุณายืนยันตัวตนผู้ดูแลก่อน', true);
+
+        var res = [];
+        for (var i = 0; i < appData.length; i++) {
+            if (appData[i].id !== id) res.push(appData[i]);
+        }
+        appData = res;
+        render();
+        showStatus('🗑️ ลบรายชื่อผู้สมัครแล้ว', false);
+    }
+
+    function resetVotes() {
+        if (!isAdminVerified) return showStatus('🔒 กรุณายืนยันตัวตนผู้ดูแลก่อน', true);
+
+        for (var i = 0; i < appData.length; i++) appData[i].votes = 0;
+        render();
+        showStatus('🔄 ล้างคะแนนทั้งหมดเป็น 0 แล้ว', false);
+    }
+
+    render();
+</script>
+
+</body>
+</html>
+
